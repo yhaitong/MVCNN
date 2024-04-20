@@ -2,6 +2,7 @@ from torch.utils.data.dataset import Dataset
 import os
 from PIL import Image
 
+
 class MultiViewDataSet(Dataset):
 
     def find_classes(self, dir):
@@ -22,11 +23,15 @@ class MultiViewDataSet(Dataset):
         self.target_transform = target_transform
 
         # root / <label>  / <train/test> / <item> / <view>.png
-        for label in os.listdir(root): # Label
-            for item in os.listdir(root + '/' + label + '/' + data_type):
+        for label in os.listdir(root):  # Label
+            for item in os.listdir(root + "/" + label + "/" + data_type):
                 views = []
-                for view in os.listdir(root + '/' + label + '/' + data_type + '/' + item):
-                    views.append(root + '/' + label + '/' + data_type + '/' + item + '/' + view)
+                for view in os.listdir(
+                    root + "/" + label + "/" + data_type + "/" + item
+                ):
+                    views.append(
+                        root + "/" + label + "/" + data_type + "/" + item + "/" + view
+                    )
 
                 self.x.append(views)
                 self.y.append(self.class_to_idx[label])
@@ -38,7 +43,7 @@ class MultiViewDataSet(Dataset):
 
         for view in orginal_views:
             im = Image.open(view)
-            im = im.convert('RGB')
+            im = im.convert("RGB")
             if self.transform is not None:
                 im = self.transform(im)
             views.append(im)
