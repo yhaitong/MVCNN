@@ -1,6 +1,7 @@
 from torch.utils.data.dataset import Dataset
 import os
 from PIL import Image
+from collections import defaultdict
 
 
 class MultiViewDataSet(Dataset):
@@ -22,19 +23,20 @@ class MultiViewDataSet(Dataset):
         self.transform = transform
         self.target_transform = target_transform
 
-        # root / <label>  / <train/test> / <item> / <view>.png
-        for label in os.listdir(root):  # Label
-            for item in os.listdir(root + "/" + label + "/" + data_type):
-                views = []
-                for view in os.listdir(
-                    root + "/" + label + "/" + data_type + "/" + item
-                ):
-                    views.append(
-                        root + "/" + label + "/" + data_type + "/" + item + "/" + view
+        item_views = defaultdict(list)
+        for label in os.listdir(root):
+            label_dir = os.path.join(root, label)
+            if os.path.isdir(label_dir) and not label.startswith("."):
+                for item_file in os.listdir(os.path.join(label_dir, data_type)):
+                    if not item_file.endswith("png"):
+                        continue
+                    c, item_id, view_number = item_file.rsplit("_", 2)
+                    item_views[(label, item_id)].append(
+                        os.path.join(label_dir, data_type, item_file)
                     )
-
-                self.x.append(views)
-                self.y.append(self.class_to_idx[label])
+        for (label, item_id), files in item_views.items():
+            self.x.append(files)
+            self.y.append(self.class_to_idx[label])
 
     # Override to give PyTorch access to any image on the dataset
     def __getitem__(self, index):

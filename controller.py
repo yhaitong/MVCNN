@@ -14,7 +14,8 @@ import os
 from models.resnet import *
 from models.mvcnn import *
 import util
-from logger import Logger
+
+# from logger import Logger
 from custom_dataset import MultiViewDataSet
 
 MVCNN = "mvcnn"
@@ -114,7 +115,8 @@ transform = transforms.Compose(
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Load dataset
-dset_train = MultiViewDataSet(args.data, "train", transform=transform)
+dt = "/Users/haitongyang/Downloads/modelnet40v1png"
+dset_train = MultiViewDataSet(dt, "train", transform=transform)
 train_loader = DataLoader(
     dset_train, batch_size=args.batch_size, shuffle=True, num_workers=2
 )
@@ -152,7 +154,7 @@ cudnn.benchmark = True
 
 print("Running on " + str(device))
 
-logger = Logger("logs")
+# logger = Logger("logs")
 
 # Loss and Optimizer
 lr = args.lr
@@ -188,7 +190,8 @@ def train():
 
         inputs = torch.from_numpy(inputs)
 
-        inputs, targets = inputs.cuda(device), targets.cuda(device)
+        inputs, targets = inputs.to(device), targets.to(device)
+        # inputs, targets = inputs.cuda(device), targets.cuda(device)
         inputs, targets = Variable(inputs), Variable(targets)
 
         # compute output
@@ -223,7 +226,8 @@ def eval(data_loader, is_test=False):
 
             inputs = torch.from_numpy(inputs)
 
-            inputs, targets = inputs.cuda(device), targets.cuda(device)
+            inputs, targets = inputs.to(device), targets.to(device)
+            # inputs, targets = inputs.cuda(device), targets.cuda(device)
             inputs, targets = Variable(inputs), Variable(targets)
 
             # compute output
@@ -243,49 +247,55 @@ def eval(data_loader, is_test=False):
     return avg_test_acc, avg_loss
 
 
-# Training / Eval loop
-if args.resume:
-    load_checkpoint()
+def main():
+    global best_acc, best_loss
+    # Training / Eval loop
+    if args.resume:
+        load_checkpoint()
 
-for epoch in range(start_epoch, n_epochs):
-    print("\n-----------------------------------")
-    print("Epoch: [%d/%d]" % (epoch + 1, n_epochs))
-    start = time.time()
+    for epoch in range(start_epoch, n_epochs):
+        print("\n-----------------------------------")
+        print("Epoch: [%d/%d]" % (epoch + 1, n_epochs))
+        start = time.time()
 
-    model.train()
-    train()
-    print("Time taken: %.2f sec." % (time.time() - start))
+        model.train()
+        train()
+        print("Time taken: %.2f sec." % (time.time() - start))
 
-    model.eval()
-    avg_test_acc, avg_loss = eval(val_loader)
+        model.eval()
+        avg_test_acc, avg_loss = eval(val_loader)
 
-    print("\nEvaluation:")
-    print("\tVal Acc: %.2f - Loss: %.4f" % (avg_test_acc.item(), avg_loss.item()))
-    print("\tCurrent best val acc: %.2f" % best_acc)
+        print("\nEvaluation:")
+        print("\tVal Acc: %.2f - Loss: %.4f" % (avg_test_acc.item(), avg_loss.item()))
+        print("\tCurrent best val acc: %.2f" % best_acc)
 
-    # Log epoch to tensorboard
-    # See log using: tensorboard --logdir='logs' --port=6006
-    util.logEpoch(logger, model, epoch + 1, avg_loss, avg_test_acc)
+        # Log epoch to tensorboard
+        # See log using: tensorboard --logdir='logs' --port=6006
+        # util.logEpoch(logger, model, epoch + 1, avg_loss, avg_test_acc)
 
-    # Save model
-    if avg_test_acc > best_acc:
-        print("\tSaving checkpoint - Acc: %.2f" % avg_test_acc)
-        best_acc = avg_test_acc
-        best_loss = avg_loss
-        util.save_checkpoint(
-            {
-                "epoch": epoch + 1,
-                "state_dict": model.state_dict(),
-                "acc": avg_test_acc,
-                "best_acc": best_acc,
-                "optimizer": optimizer.state_dict(),
-            },
-            args.model,
-            args.depth,
-        )
+        # Save model
+        if avg_test_acc > best_acc:
+            print("\tSaving checkpoint - Acc: %.2f" % avg_test_acc)
+            best_acc = avg_test_acc
+            best_loss = avg_loss
+            util.save_checkpoint(
+                {
+                    "epoch": epoch + 1,
+                    "state_dict": model.state_dict(),
+                    "acc": avg_test_acc,
+                    "best_acc": best_acc,
+                    "optimizer": optimizer.state_dict(),
+                },
+                args.model,
+                args.depth,
+            )
 
-    # Decaying Learning Rate
-    if (epoch + 1) % args.lr_decay_freq == 0:
-        lr *= args.lr_decay
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-        print("Learning rate:", lr)
+        # Decaying Learning Rate
+        if (epoch + 1) % args.lr_decay_freq == 0:
+            lr *= args.lr_decay
+            optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+            print("Learning rate:", lr)
+
+
+if __name__ == "__main__":
+    main()

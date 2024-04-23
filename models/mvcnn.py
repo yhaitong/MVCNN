@@ -70,11 +70,21 @@ def mvcnn(pretrained=False, **kwargs):
         pretrained_dict = model_zoo.load_url(model_urls["alexnet"])
         model_dict = model.state_dict()
         # 1. filter out unnecessary keys
-        pretrained_dict = {
-            k: v
-            for k, v in pretrained_dict.items()
-            if k in model_dict and v.shape == model_dict[k].shape
-        }
+        new_pt = {}
+        for k, v in pretrained_dict.items():
+            if k in model_dict and v.shape == model_dict[k].shape:
+                new_pt[k] = v
+            elif k not in model_dict:
+                print(k)
+            else:
+                vs, ms = v.shape, model_dict[k].shape
+                print(vs, ms)
+        pretrained_dict = new_pt
+        # pretrained_dict = {
+        #     k: v
+        #     for k, v in pretrained_dict.items()
+        #     if k in model_dict and v.shape == model_dict[k].shape
+        # }
         # 2. overwrite entries in the existing state dict
         model_dict.update(pretrained_dict)
         # 3. load the new state dict

@@ -120,7 +120,9 @@ def generate_views(file_path, output_dir):
                     coord[i_f] = get_coordinate_in_screen(
                         origin, x_axis, y_axis, normal, v_s[i_f]
                     )
-                    coord_px[i_f] = np.round(coord[i_f] * npixels).astype(int)
+                    coord_px[i_f] = np.clip(
+                        np.round(coord[i_f] * npixels).astype(int), 0, npixels
+                    )
                     screen[coord_px[i_f][0], coord_px[i_f][1]] = dis[i_f]
                 O_px, A_px, B_px = coord_px[1], coord_px[2], coord_px[0]
                 OA_px, OB_px = A_px - O_px, B_px - O_px
@@ -155,6 +157,8 @@ def generate_views(file_path, output_dir):
                                     f[0] + f[1] <= 1.1
                                     and f[0] >= -0.05
                                     and f[1] >= -0.05
+                                    and 0 <= newx <= npixels
+                                    and 0 <= newy <= npixels
                                 ):
                                     screen[newx, newy] = min(
                                         screen[newx, newy],
